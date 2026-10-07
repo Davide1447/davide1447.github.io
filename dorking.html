@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Dossier OSINT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1c1a17;
+    --paper:#efe8d8;
+    --paper-dark:#e2d9c2;
+    --brass:#a9803f;
+    --brass-dark:#7a5c2c;
+    --stamp:#8c3b3b;
+    --slate:#5b5747;
+    --muted:#8a8370;
+    --line:#c9bd9d;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse at top left, #f5efdf 0%, var(--paper) 60%);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    padding:2.5rem 1.5rem 3rem;
+  }
+  .wrap{max-width:880px;margin:0 auto;}
+
+  header{position:relative;margin-bottom:2rem;padding-bottom:1.25rem;border-bottom:2px solid var(--ink);}
+  h1{
+    font-family:'Special Elite', monospace;
+    font-size:2rem;
+    letter-spacing:2px;
+    margin:0 0 0.4rem;
+    text-transform:uppercase;
+  }
+  header p{margin:0;color:var(--slate);font-size:0.95rem;max-width:60ch;}
+  .stamp{
+    position:absolute; top:0; right:0;
+    border:3px solid var(--stamp);
+    color:var(--stamp);
+    font-family:'Special Elite', monospace;
+    font-size:0.7rem;
+    letter-spacing:1.5px;
+    padding:6px 10px;
+    transform:rotate(6deg);
+    opacity:0.85;
+    text-align:center;
+    line-height:1.3;
+  }
+
+  .tabs{display:flex;flex-wrap:wrap;gap:4px;margin-top:1.75rem;}
+  .tab{
+    font-family:'IBM Plex Sans';
+    font-weight:500;
+    font-size:0.85rem;
+    padding:9px 16px;
+    background:var(--paper-dark);
+    border:1px solid var(--line);
+    border-bottom:none;
+    border-radius:8px 8px 0 0;
+    cursor:pointer;
+    color:var(--slate);
+    position:relative;
+    top:1px;
+  }
+  .tab.active{
+    background:var(--paper);
+    color:var(--ink);
+    border-color:var(--ink);
+    font-weight:600;
+  }
+
+  .card-index{
+    background:var(--paper);
+    border:1px solid var(--ink);
+    border-radius:0 8px 8px 8px;
+    padding:1.5rem;
+    box-shadow:3px 4px 0 rgba(28,26,23,0.12);
+  }
+  .search-row{display:flex;gap:10px;flex-wrap:wrap;}
+  input[type=text]{
+    flex:1;
+    min-width:220px;
+    padding:11px 14px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.95rem;
+    border:1px solid var(--ink);
+    border-radius:4px;
+    background:#fbf8ef;
+    color:var(--ink);
+  }
+  input[type=text]:focus{outline:2px solid var(--brass);outline-offset:1px;}
+  button.go{
+    font-family:'Special Elite', monospace;
+    letter-spacing:1px;
+    font-size:0.9rem;
+    padding:11px 22px;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    border-radius:4px;
+    cursor:pointer;
+  }
+  button.go:hover{background:var(--brass-dark);}
+  .hint{font-size:0.8rem;color:var(--muted);margin-top:8px;}
+
+  .pwd-block{margin-top:14px;border-top:1px dashed var(--line);padding-top:14px;}
+  .show-pwd{
+    font-family:'IBM Plex Sans';font-size:0.82rem;
+    padding:0 14px;border:1px solid var(--ink);border-radius:4px;
+    background:transparent;color:var(--ink);cursor:pointer;
+  }
+  .show-pwd:hover{background:var(--ink);color:var(--paper);}
+  .pwd-note{font-size:0.78rem;color:var(--muted);margin:10px 0 0;line-height:1.55;max-width:65ch;}
+  .pwd-result{
+    margin-top:14px;padding:14px 16px;border-radius:4px;
+    font-size:0.9rem;font-weight:500;display:flex;align-items:center;gap:10px;
+  }
+  .pwd-result.safe{background:#e4ead9;color:#3c5a2f;border:1px solid #b8c9a3;}
+  .pwd-result.pwned{background:#f3dede;color:var(--stamp);border:1px solid #d9a8a8;}
+  .pwd-result.loading{background:var(--paper-dark);color:var(--slate);border:1px solid var(--line);}
+
+  .results{margin-top:1.75rem;display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));}
+  .evi{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-left:5px solid var(--brass);
+    border-radius:2px 8px 8px 2px;
+    padding:14px 16px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .evi h3{margin:0;font-size:0.98rem;font-weight:600;}
+  .evi p{margin:0;font-size:0.82rem;color:var(--slate);line-height:1.4;}
+  .evi .url{font-family:'IBM Plex Mono';font-size:0.72rem;color:var(--muted);word-break:break-all;}
+  .evi .row{display:flex;gap:8px;margin-top:4px;}
+  .evi a.open, .evi button.copy{
+    font-size:0.78rem;
+    padding:6px 12px;
+    border-radius:4px;
+    border:1px solid var(--ink);
+    background:transparent;
+    color:var(--ink);
+    text-decoration:none;
+    cursor:pointer;
+    font-family:'IBM Plex Sans';
+  }
+  .evi a.open:hover, .evi button.copy:hover{background:var(--ink);color:var(--paper);}
+
+  .empty{
+    margin-top:1.75rem;
+    padding:2rem;
+    text-align:center;
+    color:var(--muted);
+    border:1px dashed var(--line);
+    border-radius:8px;
+    font-size:0.9rem;
+  }
+
+  footer{
+    margin-top:2.5rem;
+    padding-top:1rem;
+    border-top:1px solid var(--line);
+    font-size:0.78rem;
+    color:var(--muted);
+    line-height:1.6;
+  }
+  footer strong{color:var(--stamp);}
+
+  .advanced{margin-top:2rem;}
+  .adv-toggle{
+    font-family:'Special Elite', monospace;
+    letter-spacing:1px;
+    font-size:0.95rem;
+    background:none;border:none;cursor:pointer;
+    color:var(--brass-dark);padding:0;
+  }
+  .adv-panel{
+    margin-top:1rem;
+    background:var(--paper);
+    border:1px solid var(--ink);
+    border-radius:8px;
+    padding:1.25rem 1.5rem 1.5rem;
+    box-shadow:3px 4px 0 rgba(28,26,23,0.12);
+  }
+  .adv-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1rem;}
+  .adv-tab{
+    font-family:'IBM Plex Sans';font-weight:500;font-size:0.82rem;
+    padding:7px 14px;background:var(--paper-dark);
+    border:1px solid var(--line);border-radius:6px;cursor:pointer;color:var(--slate);
+  }
+  .adv-tab.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+  .adv-desc{font-size:0.82rem;color:var(--slate);margin:0 0 12px;line-height:1.55;max-width:65ch;}
+
+  .upload-row input[type=file]{
+    font-family:'IBM Plex Sans';font-size:0.85rem;color:var(--ink);
+  }
+  .meta-table{width:100%;border-collapse:collapse;margin-top:14px;font-size:0.84rem;}
+  .meta-table tr{border-bottom:1px solid var(--line);}
+  .meta-table td{padding:7px 6px;vertical-align:top;}
+  .meta-table td:first-child{color:var(--slate);font-weight:500;width:38%;white-space:nowrap;}
+  .meta-table td:last-child{font-family:'IBM Plex Mono';font-size:0.8rem;word-break:break-word;}
+  .meta-flag{
+    margin-top:12px;padding:10px 14px;border-radius:4px;
+    background:#f3dede;color:var(--stamp);border:1px solid #d9a8a8;
+    font-size:0.82rem;font-weight:500;
+  }
+
+  .dork-grid{display:grid;grid-template-columns:180px 1fr;gap:8px 12px;align-items:center;}
+  .dork-grid label{font-size:0.82rem;color:var(--slate);}
+  .dork-grid input{
+    padding:8px 10px;font-family:'IBM Plex Mono';font-size:0.85rem;
+    border:1px solid var(--line);border-radius:4px;background:#fbf8ef;color:var(--ink);
+  }
+  .dork-preview{
+    margin-top:14px;padding:12px 14px;border:1px dashed var(--line);border-radius:4px;
+    font-family:'IBM Plex Mono';font-size:0.85rem;color:var(--ink);word-break:break-word;min-height:1.4em;
+  }
+  .dork-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .dork-actions .open, .dork-actions .copy{
+    font-size:0.82rem;padding:7px 14px;border-radius:4px;border:1px solid var(--ink);
+    background:transparent;color:var(--ink);text-decoration:none;cursor:pointer;font-family:'IBM Plex Sans';
+  }
+  .dork-actions .open:hover, .dork-actions .copy:hover{background:var(--ink);color:var(--paper);}
+
+  @media(max-width:520px){
+    h1{font-size:1.5rem;}
+    .stamp{position:static;display:inline-block;margin-top:10px;transform:rotate(-2deg);}
+    .dork-grid{grid-template-columns:1fr;}
+    .dork-grid label{margin-top:6px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Dossier OSINT</h1>
+    <p>Genera in un clic i collegamenti verso le principali fonti pubbliche di ricognizione, e verifica se una password è già comparsa in leak noti senza mai inviarla per intero a nessun server.</p>
+    <div class="stamp">SOLO<br>FONTI<br>PUBBLICHE</div>
+  </header>
+
+  <div class="tabs" id="tabs"></div>
+  <div class="card-index">
+    <div class="search-row" id="searchRow">
+      <input type="text" id="query" placeholder="es. mariorossi, esempio.com, Acme Srl, 8.8.8.8...">
+      <input type="text" id="docSite" placeholder="limita a un sito (opzionale, es. esempio.com)" hidden>
+      <button class="go" id="genBtn">Genera ▸</button>
+    </div>
+    <div class="hint" id="hint"></div>
+
+    <div class="pwd-block" id="pwdBlock" hidden>
+      <div class="search-row">
+        <input type="password" id="pwdInput" placeholder="digita la password da verificare">
+        <button type="button" class="show-pwd" id="showPwd">Mostra</button>
+        <button class="go" id="pwdCheckBtn">Verifica ▸</button>
+      </div>
+      <p class="pwd-note">La password non lascia mai il browser per intero: viene trasformata qui in un’impronta SHA-1 e solo i primi 5 caratteri di quell’impronta vengono inviati al servizio Have I Been Pwned (modello “k-anonymity”). Il confronto finale avviene localmente.</p>
+      <div id="pwdResult"></div>
+    </div>
+  </div>
+
+  <div id="results"></div>
+
+  <section class="advanced">
+    <button type="button" class="adv-toggle" id="advToggle">Sezione avanzata ▾</button>
+    <div class="adv-panel" id="advPanel" hidden>
+
+      <div class="adv-tabs" id="advTabs"></div>
+
+      <div class="adv-pane" id="pane-leak">
+        <p class="adv-desc">Verifica se un’email o un username compaiono in leak di database noti. Sono link verso servizi terzi specializzati: alcuni sono gratuiti, altri richiedono un account o un abbonamento per vedere il dettaglio.</p>
+        <div class="search-row">
+          <input type="text" id="leakQuery" placeholder="es. nome@esempio.com oppure mariorossi92">
+          <button class="go" id="leakBtn">Genera ▸</button>
+        </div>
+        <div class="results" id="leakResults"></div>
+      </div>
+
+      <div class="adv-pane" id="pane-metadata" hidden>
+        <p class="adv-desc">Carica un’immagine o un PDF per estrarne i metadati nascosti (dispositivo, software, date, coordinate GPS nelle foto, autore nei documenti). Il file viene analizzato interamente nel browser: non viene mai caricato su nessun server.</p>
+        <div class="upload-row">
+          <input type="file" id="metaFile" accept=".jpg,.jpeg,.png,.tif,.tiff,.pdf">
+        </div>
+        <div id="metaResult"></div>
+      </div>
+
+      <div class="adv-pane" id="pane-dork" hidden>
+        <p class="adv-desc">Costruisci una query di ricerca avanzata combinando operatori booleani, senza doverli ricordare a memoria.</p>
+        <div class="dork-grid">
+          <label>Tutte queste parole</label>
+          <input type="text" id="dAll" placeholder="es. bilancio riservato">
+          <label>Frase esatta</label>
+          <input type="text" id="dExact" placeholder="es. numero di conto">
+          <label>Una qualsiasi tra (OR)</label>
+          <input type="text" id="dOr" placeholder="es. fattura preventivo contratto">
+          <label>Escludi queste parole</label>
+          <input type="text" id="dExclude" placeholder="es. template esempio">
+          <label>Sito (site:)</label>
+          <input type="text" id="dSite" placeholder="es. esempio.com">
+          <label>Tipo di file (filetype:)</label>
+          <input type="text" id="dFiletype" placeholder="es. pdf">
+          <label>Nel titolo (intitle:)</label>
+          <input type="text" id="dIntitle" placeholder="es. riservato">
+          <label>Nell’URL (inurl:)</label>
+          <input type="text" id="dInurl" placeholder="es. admin">
+        </div>
+        <div class="dork-preview" id="dorkPreview"></div>
+        <div class="dork-actions">
+          <a class="open" id="dorkGoogle" href="#" target="_blank" rel="noopener noreferrer">Apri su Google ↗</a>
+          <a class="open" id="dorkBing" href="#" target="_blank" rel="noopener noreferrer">Apri su Bing ↗</a>
+          <a class="open" id="dorkDdg" href="#" target="_blank" rel="noopener noreferrer">Apri su DuckDuckGo ↗</a>
+          <button class="copy" id="dorkCopy">Copia query</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>
+    <strong>Uso responsabile.</strong> Questo strumento si limita ad aggregare link verso servizi pubblici già esistenti (Google, WHOIS, crt.sh, Shodan, LinkedIn, ecc.), a interrogare in modo anonimizzato il database di Have I Been Pwned e ad analizzare localmente, nel tuo browser, i file che carichi tu stesso — nessun file o password lascia mai questa pagina verso server di terzi. Usalo solo su dati che hai il diritto di verificare — la tua azienda, un dominio di tua proprietà, le tue password, i tuoi stessi file, informazioni pubbliche per giornalismo o ricerca sulla sicurezza — nel rispetto della privacy altrui e delle leggi vigenti (GDPR incluso). Non è pensato per sorvegliare, profilare o molestare persone.
+  </footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.js"></script>
+<script>
+const enc = s => encodeURIComponent(s.trim());
+const stripProto = s => s.trim().replace(/^https?:\/\//,'').replace(/\/$/,'');
+
+const CATEGORIES = {
+  username: {
+    label:'Username',
+    placeholder:'es. mariorossi92',
+    hint:'Cerca la presenza dello stesso username su piattaforme e archivi pubblici.',
+    sources:q => [
+      {name:'Google — dork esatto', desc:'Ricerca il valore esatto tra virgolette su tutto il web indicizzato.', url:`https://www.google.com/search?q=%22${enc(q)}%22`},
+      {name:'GitHub — ricerca utenti', desc:'Elenco di profili GitHub che corrispondono al nome.', url:`https://github.com/search?q=${enc(q)}&type=users`},
+      {name:'GitHub — profilo diretto', desc:'Prova ad aprire il profilo con questo username esatto.', url:`https://github.com/${enc(q)}`},
+      {name:'X (Twitter)', desc:'Profilo diretto su X con questo handle.', url:`https://x.com/${enc(q)}`},
+      {name:'Instagram', desc:'Profilo diretto su Instagram.', url:`https://www.instagram.com/${enc(q)}/`},
+      {name:'Reddit', desc:'Profilo utente e cronologia post pubblici.', url:`https://www.reddit.com/user/${enc(q)}`},
+      {name:'TikTok', desc:'Profilo diretto su TikTok.', url:`https://www.tiktok.com/@${enc(q)}`},
+      {name:'Keybase', desc:'Verifica identità crittografiche collegate.', url:`https://keybase.io/${enc(q)}`},
+      {name:'Pastebin — dork Google', desc:'Cerca eventuali leak o menzioni pubbliche su Pastebin.', url:`https://www.google.com/search?q=site:pastebin.com+%22${enc(q)}%22`},
+      {name:'WhatsMyName', desc:'Servizio dedicato alla ricerca username su 600+ siti (inserisci tu il valore).', url:`https://whatsmyname.app/`},
+    ]
+  },
+  domain: {
+    label:'Dominio / infrastruttura',
+    placeholder:'es. esempio.com',
+    hint:'Ricognizione su un dominio: WHOIS, DNS, certificati, host esposti.',
+    sources:q => { const d = stripProto(q); return [
+      {name:'WHOIS', desc:'Dati di registrazione del dominio.', url:`https://who.is/whois/${enc(d)}`},
+      {name:'crt.sh', desc:'Certificate transparency: sottodomini emersi dai certificati SSL.', url:`https://crt.sh/?q=${enc(d)}`},
+      {name:'Wayback Machine', desc:'Versioni storiche archiviate del sito.', url:`https://web.archive.org/web/*/${enc(d)}`},
+      {name:'Shodan', desc:'Dispositivi e servizi esposti collegati al dominio.', url:`https://www.shodan.io/search?query=${enc(d)}`},
+      {name:'Censys', desc:'Host e certificati collegati al dominio.', url:`https://search.censys.io/search?resource=hosts&q=${enc(d)}`},
+      {name:'VirusTotal', desc:'Reputazione, DNS e file collegati al dominio.', url:`https://www.virustotal.com/gui/domain/${enc(d)}`},
+      {name:'BuiltWith', desc:'Stack tecnologico usato dal sito.', url:`https://builtwith.com/${enc(d)}`},
+      {name:'DNSDumpster', desc:'Mappa DNS e sottodomini (inserisci tu il dominio).', url:`https://dnsdumpster.com/`},
+    ];}
+  },
+  email: {
+    label:'Email',
+    placeholder:'es. nome@esempio.com',
+    hint:'Verifica breach noti e menzioni pubbliche dell\u2019indirizzo.',
+    sources:q => [
+      {name:'Have I Been Pwned', desc:'Controlla se l\u2019indirizzo è comparso in data breach noti.', url:`https://haveibeenpwned.com/`},
+      {name:'Google — dork esatto', desc:'Cerca l\u2019indirizzo esatto tra virgolette sul web.', url:`https://www.google.com/search?q=%22${enc(q)}%22`},
+      {name:'Hunter.io', desc:'Verifica pattern email e dominio aziendale collegato.', url:`https://hunter.io/`},
+      {name:'Dominio collegato — WHOIS', desc:'Se l\u2019email ha un dominio custom, verificane il proprietario.', url:`https://who.is/whois/${enc(stripProto(q.split('@')[1]||q))}`},
+    ]
+  },
+  telefono: {
+    label:'Telefono',
+    placeholder:'es. +39 333 1234567',
+    hint:'Verifica pubblica di un numero: spam noto, presenza su directory, menzioni online.',
+    sources:q => { const clean = q.replace(/\s+/g,''); return [
+      {name:'Google — dork esatto', desc:'Cerca il numero esatto tra virgolette sul web.', url:`https://www.google.com/search?q=%22${enc(q)}%22`},
+      {name:'Should I Answer', desc:'Segnalazioni della community su chiamate spam/truffa.', url:`https://www.shouldianswer.com/phone-number/${enc(clean.replace('+',''))}`},
+      {name:'Sync.me', desc:'Ricerca pubblica del numero su directory community.', url:`https://sync.me/search/?number=${enc(clean)}`},
+      {name:'WhoCalledMe', desc:'Segnalazioni pubbliche associate al numero.', url:`https://whocalledme.com/Number/${enc(clean.replace('+',''))}`},
+      {name:'Truecaller', desc:'Ricerca directory (potrebbe richiedere login per il dettaglio).', url:`https://www.truecaller.com/search/it/${enc(clean.replace('+',''))}`},
+    ];}
+  },
+  immagine: {
+    label:'Immagine (URL)',
+    placeholder:'incolla l\u2019URL diretto di un\u2019immagine (https://.../foto.jpg)',
+    hint:'Reverse image search: incolla l\u2019indirizzo diretto di un\u2019immagine già online (non un file locale) per cercarne altre occorrenze sul web.',
+    sources:q => [
+      {name:'Google Immagini — ricerca inversa', desc:'Trova pagine e altre versioni della stessa immagine.', url:`https://www.google.com/searchbyimage?image_url=${enc(q)}`},
+      {name:'TinEye', desc:'Motore dedicato alla ricerca inversa di immagini.', url:`https://tineye.com/search?url=${enc(q)}`},
+      {name:'Yandex Images', desc:'Spesso più efficace di Google su volti e foto europee/russe.', url:`https://yandex.com/images/search?rpt=imageview&url=${enc(q)}`},
+      {name:'Bing Visual Search', desc:'Ricerca inversa tramite Bing.', url:`https://www.bing.com/images/search?view=detailv2&iss=sbi&form=SBIIRP&sbisrc=UrlPaste&q=imgurl:${enc(q)}`},
+    ]
+  },
+  azienda: {
+    label:'Azienda',
+    placeholder:'es. Acme Srl',
+    hint:'Dati societari pubblici, presenza social, dipendenti indicizzati.',
+    sources:q => [
+      {name:'LinkedIn — azienda', desc:'Pagina aziendale e dipendenti collegati.', url:`https://www.linkedin.com/search/results/companies/?keywords=${enc(q)}`},
+      {name:'LinkedIn — persone', desc:'Persone che indicano questa azienda nel profilo.', url:`https://www.linkedin.com/search/results/people/?keywords=${enc(q)}`},
+      {name:'OpenCorporates', desc:'Registro pubblico di società a livello globale.', url:`https://opencorporates.com/companies?q=${enc(q)}`},
+      {name:'Crunchbase', desc:'Investimenti, funding e persone chiave.', url:`https://www.crunchbase.com/textsearch?q=${enc(q)}`},
+      {name:'Glassdoor', desc:'Recensioni pubbliche di dipendenti ed ex dipendenti.', url:`https://www.glassdoor.com/Reviews/company-reviews.htm?sc.keyword=${enc(q)}`},
+      {name:'Google — dork dipendenti LinkedIn', desc:'Trova profili LinkedIn indicizzati collegati all\u2019azienda.', url:`https://www.google.com/search?q=site:linkedin.com/in+%22${enc(q)}%22`},
+    ]
+  },
+  persona: {
+    label:'Persona (nome)',
+    placeholder:'es. Mario Rossi',
+    hint:'Ricerca aperta su nome e cognome, con attenzione: molti falsi positivi con nomi comuni.',
+    sources:q => [
+      {name:'Google — dork esatto', desc:'Ricerca il nome esatto tra virgolette sul web indicizzato.', url:`https://www.google.com/search?q=%22${enc(q)}%22`},
+      {name:'Google Immagini', desc:'Foto pubbliche associate al nome.', url:`https://www.google.com/search?tbm=isch&q=${enc(q)}`},
+      {name:'LinkedIn — persone', desc:'Profili professionali corrispondenti.', url:`https://www.linkedin.com/search/results/people/?keywords=${enc(q)}`},
+      {name:'Facebook — ricerca persone', desc:'Profili pubblici corrispondenti al nome.', url:`https://www.facebook.com/search/people/?q=${enc(q)}`},
+    ]
+  },
+  ip: {
+    label:'Indirizzo IP',
+    placeholder:'es. 8.8.8.8',
+    hint:'Geolocalizzazione, reputazione e servizi esposti su un IP.',
+    sources:q => [
+      {name:'IPinfo', desc:'Geolocalizzazione, ASN e provider.', url:`https://ipinfo.io/${enc(q)}`},
+      {name:'Shodan', desc:'Servizi e porte esposte rilevate su questo host.', url:`https://www.shodan.io/host/${enc(q)}`},
+      {name:'Censys', desc:'Scansione e certificati collegati all\u2019host.', url:`https://search.censys.io/hosts/${enc(q)}`},
+      {name:'AbuseIPDB', desc:'Segnalazioni di abuso associate all\u2019IP.', url:`https://www.abuseipdb.com/check/${enc(q)}`},
+      {name:'VirusTotal', desc:'Reputazione e attività collegate all\u2019IP.', url:`https://www.virustotal.com/gui/ip-address/${enc(q)}`},
+    ]
+  },
+  documenti: {
+    label:'Documenti / file',
+    placeholder:'es. bilancio riservato, piano marketing 2026...',
+    hint:'Cerca file pubblici (PDF, Word, Excel, PowerPoint...) che contengono questa parola chiave. Puoi limitare la ricerca a un sito specifico nel campo accanto.',
+    needsSite:true,
+    sources:(q, site) => {
+      const kw = `"${q.trim()}"`;
+      const siteClause = site && site.trim() ? ` site:${stripProto(site)}` : '';
+      const dork = (ft) => `https://www.google.com/search?q=${enc(`filetype:${ft} ${kw}${siteClause}`)}`;
+      return [
+        {name:'PDF', desc:'File PDF pubblici indicizzati che contengono la parola chiave.', url:dork('pdf')},
+        {name:'Word (doc / docx)', desc:'Documenti Word pubblici indicizzati.', url:`https://www.google.com/search?q=${enc(`(filetype:doc OR filetype:docx) ${kw}${siteClause}`)}`},
+        {name:'Excel (xls / xlsx)', desc:'Fogli di calcolo pubblici indicizzati.', url:`https://www.google.com/search?q=${enc(`(filetype:xls OR filetype:xlsx) ${kw}${siteClause}`)}`},
+        {name:'PowerPoint (ppt / pptx)', desc:'Presentazioni pubbliche indicizzate.', url:`https://www.google.com/search?q=${enc(`(filetype:ppt OR filetype:pptx) ${kw}${siteClause}`)}`},
+        {name:'Testo semplice (txt / csv)', desc:'File di testo o CSV pubblici indicizzati.', url:`https://www.google.com/search?q=${enc(`(filetype:txt OR filetype:csv) ${kw}${siteClause}`)}`},
+        {name:'Tutti i formati insieme', desc:'Combina i formati più comuni in un\u2019unica ricerca.', url:`https://www.google.com/search?q=${enc(`(filetype:pdf OR filetype:doc OR filetype:docx OR filetype:xls OR filetype:xlsx OR filetype:ppt OR filetype:pptx) ${kw}${siteClause}`)}`},
+        {name:'Bing — stesso dork su PDF', desc:'Stessa ricerca sui PDF ma con un motore diverso, utile per confrontare i risultati.', url:`https://www.bing.com/search?q=${enc(`filetype:pdf ${kw}${siteClause}`)}`},
+      ];
+    }
+  },
+  password: {
+    label:'Password (pwned check)',
+    special:'password',
+    hint:'Controlla se questa password è già comparsa in leak noti, senza mai inviarla per intero a nessun server.',
+  },
+};
+
+let active = 'username';
+const tabsEl = document.getElementById('tabs');
+const queryEl = document.getElementById('query');
+const hintEl = document.getElementById('hint');
+const resultsEl = document.getElementById('results');
+const searchRowEl = document.getElementById('searchRow');
+const docSiteEl = document.getElementById('docSite');
+const pwdBlockEl = document.getElementById('pwdBlock');
+const pwdInputEl = document.getElementById('pwdInput');
+const pwdResultEl = document.getElementById('pwdResult');
+
+document.getElementById('showPwd').onclick = (e) => {
+  const isPwd = pwdInputEl.type === 'password';
+  pwdInputEl.type = isPwd ? 'text' : 'password';
+  e.target.textContent = isPwd ? 'Nascondi' : 'Mostra';
+};
+
+async function sha1Hex(text){
+  const buf = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+
+async function checkPwnedPassword(){
+  const pwd = pwdInputEl.value;
+  pwdResultEl.className = '';
+  if(!pwd){
+    pwdResultEl.className = 'pwd-result loading';
+    pwdResultEl.textContent = 'Digita una password da verificare.';
+    return;
+  }
+  pwdResultEl.className = 'pwd-result loading';
+  pwdResultEl.textContent = 'Verifica in corso…';
+  try{
+    const hash = await sha1Hex(pwd);
+    const prefix = hash.slice(0,5);
+    const suffix = hash.slice(5);
+    const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`);
+    if(!res.ok) throw new Error('risposta non valida dal servizio');
+    const text = await res.text();
+    const match = text.split('\n').find(line => line.startsWith(suffix));
+    if(match){
+      const count = parseInt(match.split(':')[1].trim(), 10);
+      pwdResultEl.className = 'pwd-result pwned';
+      pwdResultEl.textContent = `Trovata in ${count.toLocaleString('it-IT')} leak noti. Evita di usarla — è compromessa.`;
+    } else {
+      pwdResultEl.className = 'pwd-result safe';
+      pwdResultEl.textContent = 'Non risulta in nessun leak noto al momento. Nessuna garanzia assoluta, ma è un buon segno.';
+    }
+  } catch(err){
+    pwdResultEl.className = 'pwd-result pwned';
+    pwdResultEl.textContent = 'Impossibile contattare il servizio di verifica in questo momento. Riprova più tardi.';
+  }
+}
+
+document.getElementById('pwdCheckBtn').onclick = checkPwnedPassword;
+pwdInputEl.addEventListener('keydown', e => { if(e.key==='Enter') checkPwnedPassword(); });
+
+function renderTabs(){
+  tabsEl.innerHTML = '';
+  Object.keys(CATEGORIES).forEach(key => {
+    const b = document.createElement('button');
+    b.className = 'tab' + (key===active ? ' active' : '');
+    b.textContent = CATEGORIES[key].label;
+    b.onclick = () => { active = key; renderTabs(); updateView(); };
+    tabsEl.appendChild(b);
+  });
+}
+
+function updateView(){
+  const c = CATEGORIES[active];
+  if(c.special === 'password'){
+    searchRowEl.style.display = 'none';
+    pwdBlockEl.hidden = false;
+    hintEl.textContent = c.hint;
+    resultsEl.innerHTML = '';
+  } else {
+    searchRowEl.style.display = 'flex';
+    pwdBlockEl.hidden = true;
+    hintEl.textContent = c.hint;
+    queryEl.placeholder = c.placeholder;
+    docSiteEl.hidden = !c.needsSite;
+    if(!c.needsSite) docSiteEl.value = '';
+    resultsEl.innerHTML = '<div class="empty">Inserisci un valore e premi Genera per vedere le fonti disponibili per questa categoria.</div>';
+  }
+}
+
+function renderResults(){
+  const q = queryEl.value.trim();
+  resultsEl.innerHTML = '';
+  if(!q){
+    resultsEl.innerHTML = '<div class="empty">Inserisci un valore e premi Genera per vedere le fonti disponibili per questa categoria.</div>';
+    return;
+  }
+  const sources = CATEGORIES[active].sources(q, docSiteEl.value);
+  sources.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'evi';
+    card.innerHTML = `
+      <h3>${s.name}</h3>
+      <p>${s.desc}</p>
+      <div class="url">${s.url}</div>
+      <div class="row">
+        <a class="open" href="${s.url}" target="_blank" rel="noopener noreferrer">Apri ↗</a>
+        <button class="copy">Copia link</button>
+      </div>
+    `;
+    card.querySelector('.copy').onclick = (e) => {
+      navigator.clipboard.writeText(s.url);
+      e.target.textContent = 'Copiato ✓';
+      setTimeout(()=> e.target.textContent = 'Copia link', 1500);
+    };
+    resultsEl.appendChild(card);
+  });
+}
+
+document.getElementById('genBtn').onclick = renderResults;
+queryEl.addEventListener('keydown', e => { if(e.key==='Enter') renderResults(); });
+docSiteEl.addEventListener('keydown', e => { if(e.key==='Enter') renderResults(); });
+
+renderTabs();
+updateView();
+
+const advToggle = document.getElementById('advToggle');
+const advPanel = document.getElementById('advPanel');
+advToggle.onclick = () => {
+  const isHidden = advPanel.hasAttribute('hidden');
+  if(isHidden){ advPanel.removeAttribute('hidden'); advToggle.textContent = 'Sezione avanzata ▴'; }
+  else { advPanel.setAttribute('hidden',''); advToggle.textContent = 'Sezione avanzata ▾'; }
+};
+
+const ADV_TABS = [
+  {key:'leak', label:'Leak database'},
+  {key:'metadata', label:'Metadata file'},
+  {key:'dork', label:'Dork builder'},
+];
+let advActive = 'leak';
+const advTabsEl = document.getElementById('advTabs');
+function renderAdvTabs(){
+  advTabsEl.innerHTML = '';
+  ADV_TABS.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'adv-tab' + (t.key===advActive ? ' active' : '');
+    b.textContent = t.label;
+    b.onclick = () => {
+      advActive = t.key;
+      renderAdvTabs();
+      ['leak','metadata','dork'].forEach(k => { document.getElementById('pane-'+k).hidden = (k !== advActive); });
+    };
+    advTabsEl.appendChild(b);
+  });
+}
+renderAdvTabs();
+
+const LEAK_SOURCES = q => [
+  {name:'Have I Been Pwned', desc:'Controlla se l\u2019indirizzo email è comparso in breach noti.', url:`https://haveibeenpwned.com/`},
+  {name:'DeHashed', desc:'Motore di ricerca su leak e breach (richiede account per il dettaglio completo).', url:`https://dehashed.com/search?query=${enc(q)}`},
+  {name:'LeakCheck', desc:'Verifica pubblica su un ampio archivio di leak noti.', url:`https://leakcheck.io/`},
+  {name:'Intelligence X', desc:'Motore di ricerca su leak, paste e documenti trapelati.', url:`https://intelx.io/?s=${enc(q)}`},
+  {name:'BreachDirectory', desc:'Servizio gratuito di ricerca su database trapelati.', url:`https://breachdirectory.org/`},
+  {name:'Google — dork paste/leak', desc:'Cerca menzioni pubbliche su siti di paste noti per la diffusione di leak.', url:`https://www.google.com/search?q=${enc(`site:pastebin.com OR site:paste.ee "${q}"`)}`},
+];
+document.getElementById('leakBtn').onclick = () => {
+  const q = document.getElementById('leakQuery').value.trim();
+  const box = document.getElementById('leakResults');
+  box.innerHTML = '';
+  if(!q){ box.innerHTML = '<div class="empty">Inserisci un\u2019email o un username e premi Genera.</div>'; return; }
+  LEAK_SOURCES(q).forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'evi';
+    card.innerHTML = `
+      <h3>${s.name}</h3>
+      <p>${s.desc}</p>
+      <div class="url">${s.url}</div>
+      <div class="row">
+        <a class="open" href="${s.url}" target="_blank" rel="noopener noreferrer">Apri ↗</a>
+        <button class="copy">Copia link</button>
+      </div>`;
+    card.querySelector('.copy').onclick = (e) => {
+      navigator.clipboard.writeText(s.url);
+      e.target.textContent = 'Copiato ✓';
+      setTimeout(()=> e.target.textContent = 'Copia link', 1500);
+    };
+    box.appendChild(card);
+  });
+};
+document.getElementById('leakQuery').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('leakBtn').click(); });
+
+function dmsToDecimal(dms, ref){
+  if(!dms) return null;
+  const [d,m,s] = dms;
+  let dec = d + m/60 + s/3600;
+  if(ref === 'S' || ref === 'W') dec = -dec;
+  return dec;
+}
+
+function renderMetaRows(pairs){
+  const rows = pairs.filter(([,v]) => v !== undefined && v !== null && v !== '').map(([k,v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+  return `<table class="meta-table">${rows}</table>`;
+}
+
+document.getElementById('metaFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  const box = document.getElementById('metaResult');
+  box.innerHTML = '';
+  if(!file) return;
+  box.innerHTML = '<div class="empty">Analisi in corso…</div>';
+
+  if(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')){
+    const buf = await file.arrayBuffer();
+    const text = new TextDecoder('latin1').decode(buf);
+    const grab = (re) => { const m = text.match(re); return m ? m[1].replace(/\\\(/g,'(').replace(/\\\)/g,')').trim() : ''; };
+    const pairs = [
+      ['Titolo', grab(/\/Title\s*\(([^)]*)\)/)],
+      ['Autore', grab(/\/Author\s*\(([^)]*)\)/)],
+      ['Creato con', grab(/\/Creator\s*\(([^)]*)\)/)],
+      ['Prodotto con', grab(/\/Producer\s*\(([^)]*)\)/)],
+      ['Data creazione', grab(/\/CreationDate\s*\(([^)]*)\)/)],
+      ['Ultima modifica', grab(/\/ModDate\s*\(([^)]*)\)/)],
+      ['Software (XMP)', grab(/<xmp:CreatorTool>([^<]*)<\/xmp:CreatorTool>/)],
+      ['Autore (XMP)', grab(/<dc:creator>[\s\S]*?<rdf:li[^>]*>([^<]*)<\/rdf:li>/)],
+    ];
+    const found = pairs.some(([,v]) => v);
+    box.innerHTML = found
+      ? renderMetaRows(pairs) + '<p class="adv-desc" style="margin-top:10px;">Estrazione basata sul dizionario /Info e sui blocchi XMP in chiaro: alcuni PDF comprimono questi dati e non risulteranno leggibili con questo metodo.</p>'
+      : '<div class="empty">Nessun metadato leggibile trovato: questo PDF probabilmente comprime le informazioni interne (comune nei PDF generati da software recenti).</div>';
+    return;
+  }
+
+  if(typeof EXIF !== 'undefined' && file.type.startsWith('image/')){
+    EXIF.getData(file, function(){
+      const all = EXIF.getAllTags(this);
+      const lat = dmsToDecimal(all.GPSLatitude, all.GPSLatitudeRef);
+      const lon = dmsToDecimal(all.GPSLongitude, all.GPSLongitudeRef);
+      const pairs = [
+        ['Dispositivo', [all.Make, all.Model].filter(Boolean).join(' ')],
+        ['Software', all.Software],
+        ['Data scatto', all.DateTimeOriginal || all.DateTime],
+        ['Orientamento', all.Orientation],
+        ['Dimensioni', (all.PixelXDimension && all.PixelYDimension) ? `${all.PixelXDimension} × ${all.PixelYDimension}` : ''],
+        ['Coordinate GPS', (lat!=null && lon!=null) ? `${lat.toFixed(6)}, ${lon.toFixed(6)}` : ''],
+      ];
+      const hasGps = lat!=null && lon!=null;
+      const found = pairs.some(([,v]) => v);
+      let html = found ? renderMetaRows(pairs) : '<div class="empty">Nessun metadato EXIF trovato in questa immagine (spesso rimosso da social network e app di messaggistica).</div>';
+      if(hasGps){
+        html += `<div class="meta-flag">Questa immagine contiene coordinate GPS esatte del luogo in cui è stata scattata. <a class="open" style="margin-left:8px;" href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener noreferrer">Vedi su mappa ↗</a></div>`;
+      }
+      box.innerHTML = html;
+    });
+    return;
+  }
+
+  box.innerHTML = '<div class="empty">Formato non supportato: carica un\u2019immagine (JPG/PNG/TIFF) o un PDF.</div>';
+});
+
+function buildDork(){
+  const v = id => document.getElementById(id).value.trim();
+  const parts = [];
+  if(v('dAll')) parts.push(v('dAll'));
+  if(v('dExact')) parts.push(`"${v('dExact')}"`);
+  if(v('dOr')){
+    const orWords = v('dOr').split(/\s+/).filter(Boolean);
+    if(orWords.length > 1) parts.push('(' + orWords.join(' OR ') + ')');
+    else parts.push(orWords[0]);
+  }
+  if(v('dExclude')){
+    v('dExclude').split(/\s+/).filter(Boolean).forEach(w => parts.push('-' + w));
+  }
+  if(v('dSite')) parts.push('site:' + stripProto(v('dSite')));
+  if(v('dFiletype')) parts.push('filetype:' + v('dFiletype').replace(/^\./,''));
+  if(v('dIntitle')) parts.push('intitle:' + v('dIntitle'));
+  if(v('dInurl')) parts.push('inurl:' + v('dInurl'));
+  return parts.join(' ');
+}
+
+function updateDorkPreview(){
+  const q = buildDork();
+  const previewEl = document.getElementById('dorkPreview');
+  previewEl.textContent = q || 'Compila almeno un campo per generare la query.';
+  document.getElementById('dorkGoogle').href = q ? `https://www.google.com/search?q=${enc(q)}` : '#';
+  document.getElementById('dorkBing').href = q ? `https://www.bing.com/search?q=${enc(q)}` : '#';
+  document.getElementById('dorkDdg').href = q ? `https://duckduckgo.com/?q=${enc(q)}` : '#';
+}
+['dAll','dExact','dOr','dExclude','dSite','dFiletype','dIntitle','dInurl'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateDorkPreview);
+});
+document.getElementById('dorkCopy').onclick = (e) => {
+  const q = buildDork();
+  if(!q) return;
+  navigator.clipboard.writeText(q);
+  e.target.textContent = 'Copiata ✓';
+  setTimeout(()=> e.target.textContent = 'Copia query', 1500);
+};
+updateDorkPreview();
+</script>
+</body>
+</html>
